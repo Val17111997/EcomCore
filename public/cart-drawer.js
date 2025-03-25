@@ -659,5 +659,8 @@ function updateCustomCartIconCount(itemCount) {
   setupCartDrawerTriggers();
   setupAddToCartHandler();
   updateCartDrawer();
-});
+  });
+}
+initCartDrawer();
 })();
+
