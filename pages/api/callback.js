@@ -1,5 +1,4 @@
 // pages/api/callback.js
-
 import crypto from 'crypto';
 import querystring from 'querystring';
 
@@ -10,7 +9,7 @@ export default async function handler(req, res) {
     return res.status(400).send('Paramètres manquants');
   }
 
-  // Vérif HMAC
+  // Vérification du HMAC
   const { hmac: _hmac, ...params } = req.query;
   const message = querystring.stringify(params);
   const generatedHash = crypto
@@ -22,7 +21,7 @@ export default async function handler(req, res) {
     return res.status(403).send('Échec de vérification HMAC');
   }
 
-  // Échange code contre access token
+  // Échange du code contre un accessToken
   const accessTokenRequestUrl = `https://${shop}/admin/oauth/access_token`;
   const accessTokenPayload = {
     client_id: process.env.SHOPIFY_API_KEY,
@@ -39,24 +38,26 @@ export default async function handler(req, res) {
   const tokenData = await tokenResponse.json();
   const accessToken = tokenData.access_token;
 
- // Injection du ScriptTag
-try {
-  const scriptTagResponse = await fetch(`https://${shop}/admin/api/2023-10/script_tags.json`, {
+  if (!accessToken) {
+    return res.status(401).send('Access token non obtenu');
+  }
+
+  // ✅ Injection du ScriptTag
+  const scriptTagUrl = 'https://ecom-core.vercel.app/cart-drawer.js';
+  await fetch(`https://${shop}/admin/api/2023-10/script_tags.json`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
       'X-Shopify-Access-Token': accessToken,
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify({
       script_tag: {
         event: 'onload',
-        src: 'https://ecom-core.vercel.app/cart-drawer.js',
+        src: scriptTagUrl,
       },
     }),
   });
 
-  const result = await scriptTagResponse.json();
-  console.log('ScriptTag ajouté :', result);
-} catch (error) {
-  console.error('Erreur ajout ScriptTag :', error);
+  // ✅ Rediriger vers l'app installée
+  return res.redirect(`https://${shop}/admin/apps`);
 }
