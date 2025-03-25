@@ -643,4 +643,4 @@ document.addEventListener('DOMContentLoaded', () => {
   setupCartDrawerTriggers();
   setupAddToCartHandler();
   updateCartDrawer();
-};
+});
