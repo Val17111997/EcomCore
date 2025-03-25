@@ -1,3 +1,8 @@
+console.log("Drawer script chargé !");
+
+document.addEventListener("DOMContentLoaded", () => {
+  console.log("DOM prêt, le script agit maintenant !");
+});
 /*********************************************
   1) Configuration
 *********************************************/
