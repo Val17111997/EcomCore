@@ -1,4 +1,5 @@
-// pages/api/auth.js
+// /pages/api/auth.js
+
 export default function handler(req, res) {
   const shop = req.query.shop;
 
