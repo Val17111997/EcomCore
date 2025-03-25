@@ -1,4 +1,4 @@
-// /pages/api/callback.js
+// pages/api/callback.js
 
 import crypto from 'crypto';
 import querystring from 'querystring';
@@ -6,11 +6,12 @@ import querystring from 'querystring';
 export default async function handler(req, res) {
   const { shop, hmac, code } = req.query;
 
+  // Vérification des paramètres obligatoires
   if (!shop || !hmac || !code) {
     return res.status(400).send('Paramètres manquants');
   }
 
-  // Vérification de l'authenticité avec le HMAC
+  // Vérification HMAC (authenticité Shopify)
   const { hmac: _hmac, ...params } = req.query;
   const message = querystring.stringify(params);
   const generatedHash = crypto
@@ -22,7 +23,7 @@ export default async function handler(req, res) {
     return res.status(403).send('Échec de vérification HMAC');
   }
 
-  // Échange du code contre un access token
+  // Échange du code temporaire contre un token permanent
   const accessTokenRequestUrl = `https://${shop}/admin/oauth/access_token`;
   const accessTokenPayload = {
     client_id: process.env.SHOPIFY_API_KEY,
@@ -31,7 +32,7 @@ export default async function handler(req, res) {
   };
 
   try {
-    const response = await fetch(accessTokenRequestUrl, {
+    const tokenResponse = await fetch(accessTokenRequestUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -39,23 +40,31 @@ export default async function handler(req, res) {
       body: JSON.stringify(accessTokenPayload),
     });
 
-    const data = await response.json();
+    const tokenData = await tokenResponse.json();
+    const accessToken = tokenData.access_token;
 
-    if (!data.access_token) {
-      return res.status(401).send('Impossible de récupérer le token');
-    }
+    // 👉 (Facultatif) Création du ScriptTag pour injecter le cart drawer
+    const scriptTagResponse = await fetch(`https://${shop}/admin/api/2025-01/script_tags.json`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Shopify-Access-Token': accessToken,
+      },
+      body: JSON.stringify({
+        script_tag: {
+          event: 'onload',
+          src: 'https://ecom-core.vercel.app/cart-drawer.js',
+        },
+      }),
+    });
 
-    // ✅ Token récupéré avec succès !
-    console.log('✅ Access token:', data.access_token);
+    const scriptTagResult = await scriptTagResponse.json();
+    console.log('ScriptTag créé :', scriptTagResult);
 
-    // À ce stade, tu peux :
-    // - stocker le token
-    // - appeler l’API Shopify pour injecter ton ScriptTag
-    // - ou rediriger vers une page de succès
-
-    return res.redirect(`/?installed=true&shop=${shop}`);
+    // Redirection vers l'app une fois installée
+    return res.redirect(`https://ecom-core.vercel.app/?installed=true&shop=${shop}`);
   } catch (error) {
-    console.error('Erreur dans /api/callback:', error);
-    return res.status(500).send('Erreur serveur');
+    console.error('Erreur dans le callback Shopify :', error);
+    return res.status(500).send('Erreur lors du traitement de l’installation.');
   }
 }
