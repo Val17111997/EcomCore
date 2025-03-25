@@ -1,21 +1,5 @@
-(function () {
-  if (window.__CART_DRAWER_LOADED__) return;
-  window.__CART_DRAWER_LOADED__ = true;
-
-  const POLL_INTERVAL = 200;
-  const MAX_ATTEMPTS = 50;
-  let attempts = 0;
-
-  function initCartDrawer() {
-    if (!document.body || !document.head) {
-      if (++attempts > MAX_ATTEMPTS) return;
-      return setTimeout(initCartDrawer, POLL_INTERVAL);
-    }
-
-    console.log("🛒 Drawer script chargé !");
-
-    /*********************************************
-      1) Configuration
+/*********************************************
+  1) Configuration
 *********************************************/
 // Seuil livraison offerte en centimes (ex: 70€)
 const FREE_SHIPPING_THRESHOLD = 7000;  
@@ -25,7 +9,7 @@ const DISCOUNT_CODES = {
   'EXODE20': 0.20
 };
 
-// Sélecteurs potentiels pour repérer l'ancien icône panier
+// Sélecteurs potentiels pour repérer l'ancien icône panier / conteneur
 const ICON_CONTAINER_SELECTORS = [
   'a[href="/cart"].relative.tap-area',
   '.header__icon-list a[href*="/cart"]',
@@ -58,7 +42,7 @@ const ICON_CONTAINER_SELECTORS = [
 })();
 
 /*********************************************
-  3) Créer le drawer
+  3) Créer le drawer personnalisé
 *********************************************/
 function createCartDrawer() {
   const drawer = document.createElement('div');
@@ -91,7 +75,7 @@ function createCartDrawer() {
   `;
   document.body.appendChild(drawer);
 
-  // Fermer le drawer
+  // Fermer le drawer au clic sur le bouton ou l'overlay
   document.getElementById('ucd-close').onclick = () => drawer.classList.remove('open');
   document.getElementById('ucd-overlay').onclick = () => drawer.classList.remove('open');
 }
@@ -103,7 +87,7 @@ function updateCartDrawer() {
   fetch('/cart.js')
     .then(r => r.json())
     .then(cart => {
-      // Barre de progression livraison
+      // Mise à jour de la barre de progression pour la livraison
       updateShippingBar(cart.total_price);
 
       // Si le panier est vide
@@ -117,21 +101,21 @@ function updateCartDrawer() {
         return;
       }
 
-      // Liste articles
+      // Construction de la liste des articles
       const itemsHTML = cart.items.map((item, idx) => buildCartItemHTML(item, idx+1)).join('');
       document.getElementById('ucd-items').innerHTML = itemsHTML;
 
       // Sous-total
       document.getElementById('ucd-subtotal').innerHTML = `<strong>Sous-total :</strong> ${formatMoney(cart.total_price)}`;
 
-      // Attacher events (+/–/Supprimer)
+      // Attacher les événements sur les items (quantité / suppression)
       attachCartItemEvents();
 
-      // Mettre à jour icônes
+      // Mettre à jour les compteurs sur l'icône
       updateThemeCartIconCount(cart.item_count);
       updateCustomCartIconCount(cart.item_count);
 
-      // Code promo + total
+      // Gérer les codes promo et le total final
       updateCartFooter(cart);
     })
     .catch(err => {
@@ -148,9 +132,7 @@ function buildCartItemHTML(item, lineIndex) {
   if (item.variant_title && item.variant_title !== 'Default Title') {
     itemTitle += ` – ${item.variant_title}`;
   }
-
   const priceStr = formatMoney(item.price);
-
   return `
     <div class="ucd-item" data-line-index="${lineIndex}">
       <div class="ucd-item-content">
@@ -189,7 +171,7 @@ function setupCartDrawerTriggers() {
 }
 
 /*********************************************
-  7) Intercepter formulaires "Ajouter au panier"
+  7) Intercepter les formulaires "Ajouter au panier"
 *********************************************/
 function setupAddToCartHandler() {
   const forms = document.querySelectorAll('form[action*="/cart/add"]');
@@ -225,7 +207,7 @@ function setupAddToCartHandler() {
 }
 
 /*********************************************
-  8) Gérer les boutons +/- et supprimer
+  8) Gérer les boutons +/- et "Supprimer" sur les articles
 *********************************************/
 function attachCartItemEvents() {
   document.querySelectorAll('.ucd-qty-minus').forEach(btn => {
@@ -263,7 +245,7 @@ function attachCartItemEvents() {
 }
 
 /*********************************************
-  9) Mettre a jour la quantité d'une ligne
+  9) Mettre à jour la quantité d'une ligne d'article
 *********************************************/
 function updateCartLine(lineIndex, quantity) {
   fetch('/cart/change.js', {
@@ -281,7 +263,7 @@ function updateCartLine(lineIndex, quantity) {
 }
 
 /*********************************************
-  10) Barre de progression pour la livraison offerte
+  10) Mettre à jour la barre de progression pour la livraison offerte
 *********************************************/
 function updateShippingBar(totalPrice) {
   const barEl = document.getElementById('ucd-shipping-bar');
@@ -310,7 +292,7 @@ function updateShippingBar(totalPrice) {
 }
 
 /*********************************************
-  11) Footer : code promo + total final
+  11) Gérer le footer : codes promo et total final
 *********************************************/
 function updateCartFooter(cart) {
   const discountBox = document.getElementById('ucd-discount-box');
@@ -319,7 +301,6 @@ function updateCartFooter(cart) {
   if (!discountBox || !totalEl || !checkoutBtn) return;
 
   const subTotal = cart.total_price;
-  // Récup code promo en localStorage
   const storedCode = localStorage.getItem('myActiveDiscount');
   let discountRate = 0;
   if (storedCode && DISCOUNT_CODES[storedCode]) {
@@ -328,7 +309,6 @@ function updateCartFooter(cart) {
   const discountAmount = Math.round(subTotal * discountRate);
   const finalTotal = subTotal - discountAmount;
 
-  // Champ code
   discountBox.innerHTML = `
     <div class="ucd-discount-block">
       <input type="text" id="ucd-coupon-input" placeholder="Code promo" />
@@ -347,7 +327,6 @@ function updateCartFooter(cart) {
     checkoutBtn.href = `/checkout?discount=${encodeURIComponent(storedCode)}`;
   }
 
-  // Remise + total
   let discountHtml = '';
   if (discountAmount > 0) {
     discountHtml = `<p style="margin:0; color:#d9534f;">Remise : -${formatMoney(discountAmount)}</p>`;
@@ -357,7 +336,6 @@ function updateCartFooter(cart) {
     <p style="margin:0;">Total : <strong>${formatMoney(finalTotal)}</strong></p>
   `;
 
-  // Events
   const applyBtn = document.getElementById('ucd-coupon-apply');
   const input    = document.getElementById('ucd-coupon-input');
   const removeBtn= document.getElementById('ucd-coupon-remove');
@@ -391,15 +369,27 @@ function formatMoney(cents) {
 }
 
 /*********************************************
-  13) Remplacer l'icône panier du thème par le nôtre (sac)
+  13) Remplacer l'icône panier du thème par la nôtre
+  (Fusion du second code avec une vérification pour éviter les doublons)
 *********************************************/
 function replaceThemeCartIcon() {
+  if (window.__CART_ICON_REPLACED__) return;
+  window.__CART_ICON_REPLACED__ = true;
+
+  const customIconHTML = `
+    <div id="custom-cart-icon" style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M6 6V7H5C4.44772 7 4 7.44772 4 8V19C4 20.1046 4.89543 21 6 21H18C19.1046 21 20 20.1046 20 19V8C20 7.44772 19.5523 7 19 7H18V6C18 4.34315 16.6569 3 15 3H9C7.34315 3 6 4.34315 6 6ZM8 6C8 5.44772 8.44772 5 9 5H15C15.5523 5 16 5.44772 16 6V7H8V6ZM6 9H18V19H6V9Z" />
+      </svg>
+      <span id="custom-cart-count" style="background:black;color:white;border-radius:50%;padding:2px 6px;font-size:14px;font-weight:bold;">0</span>
+    </div>
+  `;
+
   let container = null;
   for (const sel of ICON_CONTAINER_SELECTORS) {
     const found = document.querySelector(sel);
     if (found) {
       container = found;
-      console.log(`Conteneur trouvé avec "${sel}"`);
       break;
     }
   }
@@ -408,53 +398,57 @@ function replaceThemeCartIcon() {
     return;
   }
 
-  // Vider l'ancien
-  container.innerHTML = '';
+  container.innerHTML = customIconHTML;
 
-  // Créer un wrapper
-  const iconWrapper = document.createElement('div');
-  iconWrapper.id = 'custom-cart-icon';
-  iconWrapper.style.display = 'inline-flex';
-  iconWrapper.style.alignItems = 'center';
-  iconWrapper.style.gap = '6px';
-  iconWrapper.style.overflow = 'visible';
-
-  // Code SVG (sac)
-  const iconSVG = `
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M6 6V7H5C4.44772 7 4 7.44772 4 8V19C4 20.1046 4.89543 21 6 21H18C19.1046 21 20 20.1046 20 19V8C20 7.44772 19.5523 7 19 7H18V6C18 4.34315 16.6569 3 15 3H9C7.34315 3 6 4.34315 6 6ZM8 6C8 5.44772 8.44772 5 9 5H15C15.5523 5 16 5.44772 16 6V7H8V6ZM6 9H18V19H6V9Z" />
-    </svg>
-  `;
-
-  // Span compteur
-  const countSpan = document.createElement('span');
-  countSpan.id = 'custom-cart-count';
-  countSpan.textContent = '0';
-  countSpan.style.background = '#000';
-  countSpan.style.color = '#fff';
-  countSpan.style.borderRadius = '50%';
-  countSpan.style.padding = '2px 6px';
-  countSpan.style.fontSize = '14px';
-  countSpan.style.fontWeight = 'bold';
-  countSpan.style.lineHeight = '1';
-  countSpan.style.overflow = 'visible';
-
-  iconWrapper.innerHTML = iconSVG;
-  iconWrapper.appendChild(countSpan);
-
-  container.appendChild(iconWrapper);
-
-  // Clic → ouvre le drawer
-  container.addEventListener('click', e => {
+  document.getElementById('custom-cart-icon').addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
-    document.getElementById('universal-cart-drawer').classList.add('open');
-    updateCartDrawer();
+    const drawer = document.getElementById('universal-cart-drawer');
+    if (drawer) {
+      drawer.classList.add('open');
+      updateCartDrawer();
+    }
+  });
+
+  // Mise à jour initiale du compteur via /cart.js
+  fetch('/cart.js')
+    .then(res => res.json())
+    .then(cart => {
+      const count = cart.item_count || 0;
+      const badge = document.getElementById('custom-cart-count');
+      if (badge) badge.textContent = count;
+    })
+    .catch(err => console.error(err));
+}
+
+/*********************************************
+  14) Mettre à jour l'icône du thème (si d'autres éléments ciblés existent)
+*********************************************/
+function updateThemeCartIconCount(itemCount) {
+  const possibleSelectors = [
+    '.cart-count',
+    '.cart-count-bubble',
+    '.header-cart-count',
+    '.header__cart-count',
+    '[data-cart-count]',
+    'cart-count.header__cart-count',
+    '#CartCount',
+    '#HeaderCartCount',
+    '.site-header__cart-count',
+    '.icon-cart-count',
+    '.cart-icon-count',
+    '.cart-counter',
+    '.shopping-cart-count'
+  ];
+  possibleSelectors.forEach(selector => {
+    document.querySelectorAll(selector).forEach(el => {
+      el.textContent = itemCount;
+    });
   });
 }
 
 /*********************************************
-  14) Mettre à jour l'icône perso
+  15) Mettre à jour l'icône personnalisée
 *********************************************/
 function updateCustomCartIconCount(itemCount) {
   const el = document.getElementById('custom-cart-count');
@@ -462,7 +456,7 @@ function updateCustomCartIconCount(itemCount) {
 }
 
 /*********************************************
-  15) Charger les styles
+  16) Charger les styles du drawer
 *********************************************/
 function loadCartDrawerStyles() {
   const style = document.createElement('style');
@@ -591,7 +585,7 @@ function loadCartDrawerStyles() {
       background:#70c15f; color:white;
     }
 
-    /* Icône perso dans le header */
+    /* Icône personnalisée */
     #custom-cart-icon {
       display: inline-flex !important;
       align-items: center !important;
@@ -620,47 +614,13 @@ function loadCartDrawerStyles() {
 }
 
 /*********************************************
-  16) Mettre à jour l'icône du thème
+  17) Initialisation globale
 *********************************************/
-function updateThemeCartIconCount(itemCount) {
-  const possibleSelectors = [
-    '.cart-count',
-    '.cart-count-bubble',
-    '.header-cart-count',
-    '.header__cart-count',
-    '[data-cart-count]',
-    'cart-count.header__cart-count',
-    '#CartCount',
-    '#HeaderCartCount',
-    '.site-header__cart-count',
-    '.icon-cart-count',
-    '.cart-icon-count',
-    '.cart-counter',
-    '.shopping-cart-count'
-  ];
-  possibleSelectors.forEach(selector => {
-    document.querySelectorAll(selector).forEach(el => {
-      el.textContent = itemCount;
-    });
-  });
-}
-
-/*********************************************
-  17) Mettre à jour l'icône perso
-*********************************************/
-function updateCustomCartIconCount(itemCount) {
-  const el = document.getElementById('custom-cart-count');
-  if (el) el.textContent = itemCount;
-}
-    document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => {
   createCartDrawer();
   loadCartDrawerStyles();
   replaceThemeCartIcon();
   setupCartDrawerTriggers();
   setupAddToCartHandler();
   updateCartDrawer();
-  });
-}
-initCartDrawer();
-})();
-
+});
