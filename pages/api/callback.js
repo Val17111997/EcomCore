@@ -39,8 +39,9 @@ export default async function handler(req, res) {
   const tokenData = await tokenResponse.json();
   const accessToken = tokenData.access_token;
 
-  // ✅ Injecter le ScriptTag
-  await fetch(`https://${shop}/admin/api/2023-07/script_tags.json`, {
+ // Injection du ScriptTag
+try {
+  const scriptTagResponse = await fetch(`https://${shop}/admin/api/2023-10/script_tags.json`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -54,6 +55,8 @@ export default async function handler(req, res) {
     }),
   });
 
-  // Rediriger vers l’interface de ton app
-  res.redirect(`https://${shop}/admin/apps`);
+  const result = await scriptTagResponse.json();
+  console.log('ScriptTag ajouté :', result);
+} catch (error) {
+  console.error('Erreur ajout ScriptTag :', error);
 }
