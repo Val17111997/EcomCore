@@ -1,0 +1,13 @@
+{
+  "name": "Drawer Panier EcomCore",
+  "target": "body",
+  "type": "app_block",
+  "settings": [
+    {
+      "type": "text",
+      "id": "cart_drawer_url",
+      "label": "URL du script du drawer",
+      "default": "https://ecom-core.vercel.app/cart-drawer.js"
+    }
+  ]
+}
