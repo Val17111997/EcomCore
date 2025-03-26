@@ -524,23 +524,67 @@
   function loadCartDrawerStyles() {
     const style = document.createElement('style');
     style.innerHTML = `
-      /* Drawer container */
+      /* 
+        1) Container global du drawer
+           - Justify-content: flex-end pour coller le drawer à droite
+           - Align-items: stretch pour que l'overlay et le drawer s'étendent sur toute la hauteur
+           - pointer-events: none pour empêcher les clics quand il est fermé 
+      */
       #universal-cart-drawer {
         font-family: sans-serif;
-        position: fixed; top: 0; right: 0; width: 100%; height: 100%;
-        z-index: 9999; display: flex; pointer-events: none;
+        position: fixed;
+        top: 0;
+        right: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 9999;
+        display: flex;
+        justify-content: flex-end;
+        align-items: stretch;
+        pointer-events: none;
       }
+      #universal-cart-drawer.open {
+        pointer-events: all; /* On réactive les clics quand c'est ouvert */
+      }
+
+      /*
+        2) Overlay
+           - Flex:1 pour occuper tout l'espace à gauche
+           - pointer-events: all quand le drawer est ouvert, pour pouvoir le fermer au clic
+      */
       #ucd-overlay {
-        flex: 1; background: rgba(0,0,0,0.5); opacity: 0; transition: opacity 0.3s;
+        flex: 1;
+        background: rgba(0,0,0,0.5);
+        opacity: 0;
+        transition: opacity 0.3s;
       }
+      #universal-cart-drawer.open #ucd-overlay {
+        pointer-events: all;
+        cursor: pointer;
+        opacity: 1;
+      }
+
+      /*
+        3) Contenu du drawer
+           - transform: translateX(100%) pour le cacher hors de l'écran (à droite)
+           - pointer-events: auto pour permettre les clics à l'intérieur 
+      */
       #ucd-content {
-        width: 380px; max-width: 90%; background: #fff; padding: 20px;
-        transform: translateX(100%); transition: transform 0.3s;
-        display: flex; flex-direction: column; gap: 16px; position: relative;
+        width: 380px;
+        max-width: 90%;
+        background: #fff;
+        padding: 20px;
+        transform: translateX(100%);
+        transition: transform 0.3s;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        position: relative;
+        pointer-events: auto; 
       }
-      #universal-cart-drawer.open { pointer-events: all; }
-      #universal-cart-drawer.open #ucd-overlay { opacity: 1; }
-      #universal-cart-drawer.open #ucd-content { transform: translateX(0); }
+      #universal-cart-drawer.open #ucd-content {
+        transform: translateX(0);
+      }
 
       /* Header */
       #ucd-header {
