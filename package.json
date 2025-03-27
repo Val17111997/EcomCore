@@ -14,6 +14,5 @@
     "next": "15.2.4",
     "@shopify/polaris": "^12.7.0",
 "@shopify/app-bridge-react": "^4.0.2",
- "@shopify/shopify-api-node": "^7.0.1"
   }
 }
