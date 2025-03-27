@@ -9,14 +9,12 @@
     "lint": "next lint"
   },
   "dependencies": {
-  "react": "^19.0.0",
-  "react-dom": "^19.0.0",
-  "next": "15.2.4",
-  "@shopify/polaris": "^12.27.0",
-  "@shopify/app-bridge-react": "^4.1.8",
-  "@shopify/shopify-api": "^11.11.1"
-}
-
-
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "next": "15.2.4",
+    "@shopify/polaris": "^12.27.0",
+    "@shopify/app-bridge-react": "^4.1.8",
+    "@shopify/shopify-api": "^11.11.1"
   }
 }
+
